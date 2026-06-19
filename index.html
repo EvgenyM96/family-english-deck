@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Семейный английский — колода карточек</title>
+<style>
+  /* ─────────────── ТЕМЫ / ЦВЕТА ─────────────── */
+  :root{
+    --bg:#FBF7F0; --ink:#2A2724; --muted:#8A8278; --line:#E7DECF;
+    --card:#FFFFFF; --shadow:0 14px 34px rgba(60,45,25,.14);
+    --food:#C0552B; --food-soft:#FBEBE2;
+    --day:#B97D14;  --day-soft:#FBF1DC;
+    --plans:#1F9E6E; --plans-soft:#DEF4EC;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh; min-height:100dvh;
+    display:flex; flex-direction:column; align-items:center;
+    padding:clamp(14px,4vw,28px) 16px calc(20px + env(safe-area-inset-bottom));
+    -webkit-text-size-adjust:100%; touch-action:manipulation;
+  }
+  header{text-align:center; max-width:520px}
+  h1{font-size:clamp(20px,5.4vw,28px); margin:0 0 4px; letter-spacing:-.01em}
+  .sub{color:var(--muted); font-size:clamp(12px,3.4vw,14px); margin:0}
+
+  /* ─────────────── ПРАВИЛА (сворачиваемые) ─────────────── */
+  .rules{
+    width:100%; max-width:460px; margin:14px 0 0; background:#fff;
+    border:1.5px solid var(--line); border-radius:14px; overflow:hidden;
+  }
+  .rules summary{
+    list-style:none; cursor:pointer; padding:12px 16px; font-weight:700; font-size:14px;
+    display:flex; align-items:center; justify-content:space-between; user-select:none;
+  }
+  .rules summary::-webkit-details-marker{display:none}
+  .rules summary::after{content:"▾"; color:var(--muted); transition:.2s}
+  .rules[open] summary::after{transform:rotate(180deg)}
+  .rules ul{margin:0; padding:2px 20px 16px 34px; font-size:13.5px; line-height:1.5; color:var(--ink)}
+  .rules li{margin:6px 0}
+
+  /* ─────────────── КОНТРОЛЫ ─────────────── */
+  .controls{
+    width:100%; max-width:460px; margin:clamp(14px,4vw,20px) 0;
+    display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
+  }
+  .chip{
+    border:1.5px solid var(--line); background:#fff; color:var(--ink);
+    font-size:14px; font-weight:600; padding:9px 15px; border-radius:999px;
+    cursor:pointer; transition:.15s; line-height:1; user-select:none; touch-action:manipulation;
+  }
+  .chip:active{transform:scale(.96)}
+  .chip[data-theme="all"].on{background:var(--ink); color:#fff; border-color:var(--ink)}
+  .chip[data-theme="food"].on{background:var(--food); color:#fff; border-color:var(--food)}
+  .chip[data-theme="day"].on{background:var(--day); color:#fff; border-color:var(--day)}
+  .chip[data-theme="plans"].on{background:var(--plans); color:#fff; border-color:var(--plans)}
+  .chip.shuffle{margin-left:4px; border-style:dashed}
+
+  /* ─────────────── КАРТОЧКА (flip) ─────────────── */
+  .stage{width:100%; max-width:420px; perspective:1400px}
+  .card{
+    position:relative; width:100%; min-height:clamp(360px,60vh,480px);
+    cursor:pointer; transition:transform .55s cubic-bezier(.3,.7,.3,1);
+    transform-style:preserve-3d; -webkit-transform-style:preserve-3d;
+    will-change:transform; user-select:none;
+  }
+  .card.flipped{transform:rotateY(180deg)}
+  .face{
+    position:absolute; inset:0;
+    backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    background:var(--card); border-radius:22px; box-shadow:var(--shadow);
+    border-top:8px solid var(--line); overflow:hidden;
+    display:flex; flex-direction:column; padding:22px 22px 18px;
+  }
+  .card[data-theme="food"]  .front{border-top-color:var(--food)}
+  .card[data-theme="day"]   .front{border-top-color:var(--day)}
+  .card[data-theme="plans"] .front{border-top-color:var(--plans)}
+  .card[data-theme="food"]  .back{border-top-color:var(--food); background:var(--food-soft)}
+  .card[data-theme="day"]   .back{border-top-color:var(--day);  background:var(--day-soft)}
+  .card[data-theme="plans"] .back{border-top-color:var(--plans);background:var(--plans-soft)}
+
+  .badge{
+    align-self:flex-start; font-size:12px; font-weight:700; letter-spacing:.03em;
+    color:#fff; padding:5px 12px; border-radius:7px; flex:none;
+  }
+  .card[data-theme="food"]  .badge{background:var(--food)}
+  .card[data-theme="day"]   .badge{background:var(--day)}
+  .card[data-theme="plans"] .badge{background:var(--plans)}
+
+  .body{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:14px; min-height:0}
+  .front .q{font-size:clamp(22px,6.2vw,30px); font-weight:800; line-height:1.18; letter-spacing:-.01em}
+  .hints{display:flex; flex-direction:column; gap:4px; align-items:center}
+  .hints .lbl{font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:2px}
+  .hints span:not(.lbl){font-size:clamp(13px,3.7vw,15px); color:var(--muted); font-style:italic; line-height:1.25}
+
+  .back{transform:rotateY(180deg)}
+  .back .t{font-size:clamp(16px,4.6vw,20px); line-height:1.45; font-weight:500}
+  .levels{font-size:clamp(11px,3vw,12.5px); color:var(--muted); text-align:center; line-height:1.4; margin-top:6px}
+  .kind{font-size:12px; color:var(--muted); text-align:center; margin-top:6px}
+  .hint{font-size:12px; color:var(--muted); text-align:center; margin-top:6px}
+
+  /* ─────────────── НАВИГАЦИЯ ─────────────── */
+  nav{
+    width:100%; max-width:420px; margin-top:18px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .nav-btn{
+    width:56px; height:56px; border-radius:50%; border:1.5px solid var(--line);
+    background:#fff; font-size:22px; color:var(--ink); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:.15s; flex:none;
+    touch-action:manipulation;
+  }
+  .nav-btn:active{transform:scale(.92)}
+  .nav-btn:disabled{opacity:.32; cursor:default}
+  .counter{font-size:15px; font-weight:600; color:var(--muted); text-align:center; flex:1}
+  .counter b{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Семейный английский</h1>
+  <p class="sub">Тяни карту, переворачивай по клику, говори по-английски. 2 раза в неделю.</p>
+</header>
+
+<details class="rules">
+  <summary>📋 Как играть</summary>
+  <ul>
+    <li>Ходим <b>по кругу</b>. Вытянул карту — отвечаешь на английском, опираясь на подсказки.</li>
+    <li>За ответ — <b>1 жетон</b>, за сценку или «покажи» (charades) — <b>2 жетона</b>.</li>
+    <li>Считаем <b>общий счёт семьи</b>: играем вместе против скуки, а не друг против друга.</li>
+    <li>«<b>Спроси соседа</b>» — твоё право-подсказка, если застрял.</li>
+    <li>Уровень по силам: <b>малыши</b> — одно слово или жест, <b>постарше</b> — 2–3 предложения.</li>
+  </ul>
+</details>
+
+<div class="controls" id="filters">
+  <button class="chip on" data-theme="all">Все</button>
+  <button class="chip" data-theme="food">Еда</button>
+  <button class="chip" data-theme="day">День</button>
+  <button class="chip" data-theme="plans">Планы</button>
+  <button class="chip shuffle" id="shuffleBtn">🔀 Перемешать</button>
+</div>
+
+<div class="stage">
+  <div class="card" id="card" role="button" tabindex="0" aria-label="Карточка, нажми чтобы перевернуть">
+    <div class="face front">
+      <span class="badge" id="badge">Еда</span>
+      <div class="body">
+        <div class="q" id="question">—</div>
+        <div class="hints" id="hints"></div>
+      </div>
+      <div class="hint">нажми, чтобы перевернуть ↻</div>
+    </div>
+    <div class="face back">
+      <span class="badge" id="badgeBack">Еда</span>
+      <div class="body"><div class="t" id="task">—</div></div>
+      <div class="levels" id="levels"></div>
+      <div class="kind">задание</div>
+    </div>
+  </div>
+</div>
+
+<nav>
+  <button class="nav-btn" id="prev" aria-label="Назад">◀</button>
+  <div class="counter" aria-live="polite">Карта <b id="cur">1</b> из <span id="total">15</span></div>
+  <button class="nav-btn" id="next" aria-label="Вперёд">▶</button>
+</nav>
+
+<script>
+/* ════════════════════════════════════════════════════════════════
+   ИСТОЧНИК ДАННЫХ — единственное место правды для колоды.
+   Чтобы добавить карту: скопируй строку и впиши свою.
+     theme — "food" | "day" | "plans"
+     en    — лицо карты (вопрос на английском)
+     ru    — оборот (задание по-русски)
+     hints — 3–4 опоры (sentence starters), помогают слабым/детям говорить
+   ════════════════════════════════════════════════════════════════ */
+const CARDS = [
+  // ── Еда ──
+  { theme:"food", en:"Describe your favorite meal", ru:"Расскажи о любимом блюде: что это, как пахнет, кто его готовит. Задай соседу: «What's YOUR favorite meal?»",
+    hints:["My favorite meal is…", "It tastes…", "It's made of…", "I like it because…"] },
+  { theme:"food", en:"Name 5 things in the fridge", ru:"Назови 5 продуктов в холодильнике на английском. Кто запнулся — придумывает рецепт из них.",
+    hints:["There is…", "There are…", "I can see…", "We have…"] },
+  { theme:"food", en:"Order breakfast in a cafe", ru:"Разыграй сценку: один — официант, другой — гость. Закажи завтрак и напиток.",
+    hints:["Can I have…?", "I'd like…", "How much is…?", "Thank you!"] },
+  { theme:"food", en:"Sweet or salty? Why?", ru:"Сладкое или солёное? Объясни выбор минимум двумя предложениями. Спроси у всех за столом.",
+    hints:["I prefer…", "because…", "For example…", "I don't like… because…"] },
+  { theme:"food", en:"Teach a recipe in 4 steps", ru:"Объясни простой рецепт в 4 шага: First… Then… After that… Finally…",
+    hints:["First…", "Then…", "After that…", "Finally…"] },
+
+  // ── День ──
+  { theme:"day", en:"Your morning routine", ru:"Опиши утро по шагам: I wake up… I… Используй минимум 5 глаголов действия.",
+    hints:["I wake up…", "Then I…", "After that I…", "I usually…"] },
+  { theme:"day", en:"Best moment of today", ru:"Лучший момент сегодняшнего дня — и почему. Сосед задаёт один уточняющий вопрос.",
+    hints:["The best moment was…", "It happened when…", "I felt…", "because…"] },
+  { theme:"day", en:"Describe the weather", ru:"Опиши погоду за окном без слов «good» и «bad». Найди 3 других прилагательных.",
+    hints:["It's…", "The sky is…", "sunny · cloudy · windy", "warm · chilly · rainy"] },
+  { theme:"day", en:"Where did you go today?", ru:"Куда ты сегодня ходил/ездил? Расскажи маршрут: I went to… then…",
+    hints:["I went to…", "Then I…", "I saw…", "After that…"] },
+  { theme:"day", en:"How do you feel? (no 'good')", ru:"Как ты себя чувствуешь — без слова «good». Объясни почему одним предложением.",
+    hints:["I feel…", "because…", "happy · tired · excited", "calm · hungry · sleepy"] },
+
+  // ── Планы ──
+  { theme:"plans", en:"Plans for the weekend", ru:"Планы на выходные: 3 вещи через «I'm going to…» или «I will…»",
+    hints:["I'm going to…", "I will…", "On Saturday I…", "I want to…"] },
+  { theme:"plans", en:"Dream trip — where & why", ru:"Куда бы поехал в путешествие мечты и почему. Сосед спрашивает: «What will you do there?»",
+    hints:["I'd love to go to…", "because…", "There I can…", "I will…"] },
+  { theme:"plans", en:"One goal for this month", ru:"Одна цель на месяц на английском. Объясни первый шаг к ней.",
+    hints:["My goal is to…", "I want to…", "First, I will…", "because…"] },
+  { theme:"plans", en:"Plan a surprise for someone", ru:"Придумай сюрприз для кого-то за столом. Опиши план, но не выдай кому именно.",
+    hints:["I'm going to…", "First…", "Then…", "It's a secret!"] },
+  { theme:"plans", en:"Tomorrow in 3 sentences", ru:"Опиши завтрашний день в 3 предложениях, используя будущее время.",
+    hints:["Tomorrow I will…", "I'm going to…", "After that…", "In the evening…"] },
+];
+
+const THEME_LABEL = { food:"Еда", day:"День", plans:"Планы" };
+const LEVELS = "Малыши — 1 слово или жест · постарше — 2–3 предложения";
+
+/* ── состояние ── */
+let filter = "all";
+let order  = [];   // индексы CARDS в текущей колоде
+let pos    = 0;
+
+const $ = id => document.getElementById(id);
+const card = $("card");
+
+function buildOrder(){
+  order = CARDS.map((_,i)=>i).filter(i => filter==="all" || CARDS[i].theme===filter);
+  pos = 0;
+}
+
+function shuffle(){
+  for(let i=order.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [order[i],order[j]] = [order[j],order[i]];
+  }
+  pos = 0; render();
+}
+
+function renderHints(list){
+  const box = $("hints");
+  box.innerHTML = "";
+  const lbl = document.createElement("span");
+  lbl.className = "lbl"; lbl.textContent = "опоры";
+  box.appendChild(lbl);
+  list.forEach(h=>{ const s=document.createElement("span"); s.textContent=h; box.appendChild(s); });
+}
+
+function render(){
+  const total = order.length;
+  $("total").textContent = total;
+  if(total===0){
+    card.style.display="none";
+    $("cur").textContent="0";
+    $("prev").disabled = $("next").disabled = true;
+    return;
+  }
+  card.style.display="";
+  card.classList.remove("flipped");           // всегда показываем вопрос первым
+  const c = CARDS[order[pos]];
+  card.dataset.theme = c.theme;
+  $("question").textContent = c.en;
+  $("task").textContent     = c.ru;
+  renderHints(c.hints || []);
+  $("levels").textContent = LEVELS;
+  $("badge").textContent = $("badgeBack").textContent = THEME_LABEL[c.theme];
+  $("cur").textContent = pos+1;
+  $("prev").disabled = pos===0;
+  $("next").disabled = pos===total-1;
+}
+
+function go(delta){
+  const n = pos+delta;
+  if(n<0 || n>=order.length) return;
+  pos = n; render();
+}
+
+/* ── события ── */
+card.addEventListener("click", ()=> card.classList.toggle("flipped"));
+$("prev").addEventListener("click", e=>{e.stopPropagation(); go(-1);});
+$("next").addEventListener("click", e=>{e.stopPropagation(); go(1);});
+$("shuffleBtn").addEventListener("click", shuffle);
+
+$("filters").addEventListener("click", e=>{
+  const btn = e.target.closest(".chip[data-theme]");
+  if(!btn) return;
+  filter = btn.dataset.theme;
+  document.querySelectorAll(".chip[data-theme]").forEach(c=>c.classList.toggle("on", c===btn));
+  buildOrder(); render();
+});
+
+document.addEventListener("keydown", e=>{
+  if(e.key==="ArrowLeft")  go(-1);
+  if(e.key==="ArrowRight") go(1);
+  if(e.key===" "||e.key==="Enter"){ e.preventDefault(); card.classList.toggle("flipped"); }
+});
+
+buildOrder(); render();
+</script>
+</body>
+</html>
