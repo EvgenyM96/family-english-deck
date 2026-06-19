@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Семейный английский — колода карточек</title>
+<title>Семейный английский</title>
 <style>
-  /* ─────────────── ТЕМЫ / ЦВЕТА ─────────────── */
   :root{
     --bg:#FBF7F0; --ink:#2A2724; --muted:#8A8278; --line:#E7DECF;
     --card:#FFFFFF; --shadow:0 14px 34px rgba(60,45,25,.14);
     --food:#C0552B; --food-soft:#FBEBE2;
     --day:#B97D14;  --day-soft:#FBF1DC;
     --plans:#1F9E6E; --plans-soft:#DEF4EC;
+    --ok:#1F9E6E; --bad:#C0392B;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
   html,body{margin:0}
@@ -27,279 +27,403 @@
   h1{font-size:clamp(20px,5.4vw,28px); margin:0 0 4px; letter-spacing:-.01em}
   .sub{color:var(--muted); font-size:clamp(12px,3.4vw,14px); margin:0}
 
-  /* ─────────────── ПРАВИЛА (сворачиваемые) ─────────────── */
-  .rules{
-    width:100%; max-width:460px; margin:14px 0 0; background:#fff;
-    border:1.5px solid var(--line); border-radius:14px; overflow:hidden;
+  /* ── переключатель режимов ── */
+  .tabs{width:100%; max-width:460px; margin:16px 0 4px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap}
+  .tab{
+    border:1.5px solid var(--line); background:#fff; color:var(--ink);
+    font-size:14px; font-weight:700; padding:10px 16px; border-radius:999px;
+    cursor:pointer; transition:.15s; line-height:1; user-select:none; touch-action:manipulation;
   }
-  .rules summary{
-    list-style:none; cursor:pointer; padding:12px 16px; font-weight:700; font-size:14px;
-    display:flex; align-items:center; justify-content:space-between; user-select:none;
-  }
+  .tab:active{transform:scale(.96)}
+  .tab.on{background:var(--ink); color:#fff; border-color:var(--ink)}
+
+  /* ── правила ── */
+  .rules{width:100%; max-width:460px; margin:12px 0 0; background:#fff; border:1.5px solid var(--line); border-radius:14px; overflow:hidden}
+  .rules summary{list-style:none; cursor:pointer; padding:12px 16px; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:space-between; user-select:none}
   .rules summary::-webkit-details-marker{display:none}
   .rules summary::after{content:"▾"; color:var(--muted); transition:.2s}
   .rules[open] summary::after{transform:rotate(180deg)}
-  .rules ul{margin:0; padding:2px 20px 16px 34px; font-size:13.5px; line-height:1.5; color:var(--ink)}
-  .rules li{margin:6px 0}
+  .rules .rbody{padding:2px 18px 14px; font-size:13.5px; line-height:1.5}
+  .rules b{color:var(--ink)} .rules ul{margin:6px 0; padding-left:18px} .rules li{margin:5px 0}
 
-  /* ─────────────── КОНТРОЛЫ ─────────────── */
-  .controls{
-    width:100%; max-width:460px; margin:clamp(14px,4vw,20px) 0;
-    display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
-  }
-  .chip{
-    border:1.5px solid var(--line); background:#fff; color:var(--ink);
-    font-size:14px; font-weight:600; padding:9px 15px; border-radius:999px;
-    cursor:pointer; transition:.15s; line-height:1; user-select:none; touch-action:manipulation;
-  }
+  /* ── общие контролы ── */
+  .controls{width:100%; max-width:460px; margin:16px 0; display:flex; flex-wrap:wrap; gap:8px; justify-content:center}
+  .chip{border:1.5px solid var(--line); background:#fff; color:var(--ink); font-size:14px; font-weight:600; padding:9px 15px; border-radius:999px; cursor:pointer; transition:.15s; line-height:1; user-select:none; touch-action:manipulation}
   .chip:active{transform:scale(.96)}
   .chip[data-theme="all"].on{background:var(--ink); color:#fff; border-color:var(--ink)}
   .chip[data-theme="food"].on{background:var(--food); color:#fff; border-color:var(--food)}
   .chip[data-theme="day"].on{background:var(--day); color:#fff; border-color:var(--day)}
   .chip[data-theme="plans"].on{background:var(--plans); color:#fff; border-color:var(--plans)}
-  .chip.shuffle{margin-left:4px; border-style:dashed}
+  .chip.alt{border-style:dashed}
+  .chip.alt.on{background:var(--ink); color:#fff; border-color:var(--ink)}
 
-  /* ─────────────── КАРТОЧКА (flip) ─────────────── */
+  .screen{width:100%; display:flex; flex-direction:column; align-items:center}
+  .hidden{display:none!important}
+
+  /* ── flip-карта (разговор + словарные карточки) ── */
   .stage{width:100%; max-width:420px; perspective:1400px}
-  .card{
-    position:relative; width:100%; min-height:clamp(360px,60vh,480px);
-    cursor:pointer; transition:transform .55s cubic-bezier(.3,.7,.3,1);
-    transform-style:preserve-3d; -webkit-transform-style:preserve-3d;
-    will-change:transform; user-select:none;
-  }
-  .card.flipped{transform:rotateY(180deg)}
-  .face{
-    position:absolute; inset:0;
-    backface-visibility:hidden; -webkit-backface-visibility:hidden;
-    background:var(--card); border-radius:22px; box-shadow:var(--shadow);
-    border-top:8px solid var(--line); overflow:hidden;
-    display:flex; flex-direction:column; padding:22px 22px 18px;
-  }
-  .card[data-theme="food"]  .front{border-top-color:var(--food)}
-  .card[data-theme="day"]   .front{border-top-color:var(--day)}
-  .card[data-theme="plans"] .front{border-top-color:var(--plans)}
-  .card[data-theme="food"]  .back{border-top-color:var(--food); background:var(--food-soft)}
-  .card[data-theme="day"]   .back{border-top-color:var(--day);  background:var(--day-soft)}
-  .card[data-theme="plans"] .back{border-top-color:var(--plans);background:var(--plans-soft)}
-
-  .badge{
-    align-self:flex-start; font-size:12px; font-weight:700; letter-spacing:.03em;
-    color:#fff; padding:5px 12px; border-radius:7px; flex:none;
-  }
-  .card[data-theme="food"]  .badge{background:var(--food)}
-  .card[data-theme="day"]   .badge{background:var(--day)}
-  .card[data-theme="plans"] .badge{background:var(--plans)}
-
+  .flip{position:relative; width:100%; min-height:clamp(360px,58vh,470px); cursor:pointer; transition:transform .55s cubic-bezier(.3,.7,.3,1); transform-style:preserve-3d; -webkit-transform-style:preserve-3d; will-change:transform; user-select:none}
+  .flip.flipped{transform:rotateY(180deg)}
+  .face{position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; background:var(--card); border-radius:22px; box-shadow:var(--shadow); border-top:8px solid var(--line); overflow:hidden; display:flex; flex-direction:column; padding:22px 22px 18px}
+  .face.back{transform:rotateY(180deg)}
+  [data-theme="food"]  .front{border-top-color:var(--food)}
+  [data-theme="day"]   .front{border-top-color:var(--day)}
+  [data-theme="plans"] .front{border-top-color:var(--plans)}
+  [data-theme="food"]  .back{border-top-color:var(--food); background:var(--food-soft)}
+  [data-theme="day"]   .back{border-top-color:var(--day);  background:var(--day-soft)}
+  [data-theme="plans"] .back{border-top-color:var(--plans);background:var(--plans-soft)}
+  .badge{align-self:flex-start; font-size:12px; font-weight:700; letter-spacing:.03em; color:#fff; padding:5px 12px; border-radius:7px; flex:none}
+  [data-theme="food"]  .badge{background:var(--food)}
+  [data-theme="day"]   .badge{background:var(--day)}
+  [data-theme="plans"] .badge{background:var(--plans)}
   .body{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:14px; min-height:0}
   .front .q{font-size:clamp(22px,6.2vw,30px); font-weight:800; line-height:1.18; letter-spacing:-.01em}
   .hints{display:flex; flex-direction:column; gap:4px; align-items:center}
   .hints .lbl{font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:2px}
   .hints span:not(.lbl){font-size:clamp(13px,3.7vw,15px); color:var(--muted); font-style:italic; line-height:1.25}
-
-  .back{transform:rotateY(180deg)}
   .back .t{font-size:clamp(16px,4.6vw,20px); line-height:1.45; font-weight:500}
   .levels{font-size:clamp(11px,3vw,12.5px); color:var(--muted); text-align:center; line-height:1.4; margin-top:6px}
   .kind{font-size:12px; color:var(--muted); text-align:center; margin-top:6px}
   .hint{font-size:12px; color:var(--muted); text-align:center; margin-top:6px}
 
-  /* ─────────────── НАВИГАЦИЯ ─────────────── */
-  nav{
-    width:100%; max-width:420px; margin-top:18px;
-    display:flex; align-items:center; justify-content:space-between; gap:12px;
-  }
-  .nav-btn{
-    width:56px; height:56px; border-radius:50%; border:1.5px solid var(--line);
-    background:#fff; font-size:22px; color:var(--ink); cursor:pointer;
-    display:flex; align-items:center; justify-content:center; transition:.15s; flex:none;
-    touch-action:manipulation;
-  }
+  /* словарная карточка крупное слово */
+  .word{font-size:clamp(30px,9vw,42px); font-weight:800; letter-spacing:-.01em}
+  .word-sub{font-size:13px; color:var(--muted)}
+  .speak{margin-top:10px; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:8px 16px; font-size:15px; cursor:pointer; touch-action:manipulation}
+  .speak:active{transform:scale(.95)}
+
+  nav{width:100%; max-width:420px; margin-top:18px; display:flex; align-items:center; justify-content:space-between; gap:12px}
+  .nav-btn{width:56px; height:56px; border-radius:50%; border:1.5px solid var(--line); background:#fff; font-size:22px; color:var(--ink); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.15s; flex:none; touch-action:manipulation}
   .nav-btn:active{transform:scale(.92)}
   .nav-btn:disabled{opacity:.32; cursor:default}
   .counter{font-size:15px; font-weight:600; color:var(--muted); text-align:center; flex:1}
   .counter b{color:var(--ink)}
+
+  /* грейд-кнопки карточек */
+  .grade{width:100%; max-width:420px; margin-top:16px; display:flex; gap:10px}
+  .grade button{flex:1; padding:14px; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; border:1.5px solid var(--line); background:#fff; transition:.15s; touch-action:manipulation}
+  .grade button:active{transform:scale(.97)}
+  .grade .know{border-color:var(--ok); color:var(--ok)}
+  .grade .again{border-color:var(--day); color:var(--day)}
+  .progress{width:100%; max-width:420px; margin-top:14px; text-align:center; font-size:14px; color:var(--muted)}
+  .progress b{color:var(--ink)}
+
+  /* ── игра «Пары» ── */
+  .matchbar{width:100%; max-width:420px; margin-top:6px; display:flex; align-items:center; justify-content:space-between; font-size:14px; color:var(--muted)}
+  .matchbar b{color:var(--ink); font-variant-numeric:tabular-nums}
+  .board{width:100%; max-width:420px; margin-top:14px; display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
+  .tile{min-height:62px; border:1.5px solid var(--line); background:#fff; border-radius:12px; padding:8px 6px; font-size:clamp(12.5px,3.5vw,15px); font-weight:600; line-height:1.15; cursor:pointer; display:flex; align-items:center; justify-content:center; text-align:center; word-break:break-word; transition:.12s; touch-action:manipulation}
+  .tile:active{transform:scale(.96)}
+  .tile.ru{color:var(--ink)} .tile.en{color:#3a352f; font-style:italic}
+  .tile.sel{border-color:var(--ink); box-shadow:0 0 0 2px var(--ink) inset}
+  .tile.ok{border-color:var(--ok); background:var(--plans-soft); color:var(--ok); pointer-events:none; opacity:.65}
+  .tile.bad{border-color:var(--bad); background:#FBE6E3; color:var(--bad); animation:shake .32s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  .win{width:100%; max-width:420px; margin-top:16px; text-align:center; font-size:16px; font-weight:700; color:var(--ok)}
+  .win small{display:block; font-weight:500; color:var(--muted); margin-top:4px}
 </style>
 </head>
 <body>
 
 <header>
   <h1>Семейный английский</h1>
-  <p class="sub">Тяни карту, переворачивай по клику, говори по-английски. 2 раза в неделю.</p>
+  <p class="sub">Три режима: разговор, сопоставление слов и карточки на перевод.</p>
 </header>
+
+<div class="tabs" id="tabs">
+  <button class="tab on" data-screen="talk">🗣 Разговор</button>
+  <button class="tab" data-screen="match">🧩 Пары</button>
+  <button class="tab" data-screen="cards">🔤 Карточки</button>
+</div>
 
 <details class="rules">
   <summary>📋 Как играть</summary>
-  <ul>
-    <li>Ходим <b>по кругу</b>. Вытянул карту — отвечаешь на английском, опираясь на подсказки.</li>
-    <li>За ответ — <b>1 жетон</b>, за сценку или «покажи» (charades) — <b>2 жетона</b>.</li>
-    <li>Считаем <b>общий счёт семьи</b>: играем вместе против скуки, а не друг против друга.</li>
-    <li>«<b>Спроси соседа</b>» — твоё право-подсказка, если застрял.</li>
-    <li>Уровень по силам: <b>малыши</b> — одно слово или жест, <b>постарше</b> — 2–3 предложения.</li>
-  </ul>
+  <div class="rbody">
+    <b>🗣 Разговор</b> — вытяни карту, ответь на английском (на лице есть опоры). Ходим по кругу; за ответ — 1 жетон, за сценку/«покажи» — 2. Считаем общий счёт семьи. Уровень: малыши — слово/жест, постарше — 2–3 предложения.
+    <ul>
+      <li><b>🧩 Пары</b> — соедини слово и перевод. Кто быстрее очистит поле — жетон. Бьём личный рекорд по времени.</li>
+      <li><b>🔤 Карточки</b> — тренируй слова сам: «Знаю» убирает карту, «Повторить» вернёт позже. 🔊 — послушать произношение.</li>
+    </ul>
+  </div>
 </details>
 
-<div class="controls" id="filters">
-  <button class="chip on" data-theme="all">Все</button>
-  <button class="chip" data-theme="food">Еда</button>
-  <button class="chip" data-theme="day">День</button>
-  <button class="chip" data-theme="plans">Планы</button>
-  <button class="chip shuffle" id="shuffleBtn">🔀 Перемешать</button>
-</div>
-
-<div class="stage">
-  <div class="card" id="card" role="button" tabindex="0" aria-label="Карточка, нажми чтобы перевернуть">
-    <div class="face front">
-      <span class="badge" id="badge">Еда</span>
-      <div class="body">
-        <div class="q" id="question">—</div>
-        <div class="hints" id="hints"></div>
+<!-- ════════ РАЗГОВОР ════════ -->
+<section class="screen" id="screen-talk">
+  <div class="controls" id="talkFilters">
+    <button class="chip on" data-theme="all">Все</button>
+    <button class="chip" data-theme="food">Еда</button>
+    <button class="chip" data-theme="day">День</button>
+    <button class="chip" data-theme="plans">Планы</button>
+    <button class="chip alt" id="talkShuffle">🔀 Перемешать</button>
+  </div>
+  <div class="stage">
+    <div class="flip" id="talkCard" role="button" tabindex="0" aria-label="Карточка, нажми чтобы перевернуть">
+      <div class="face front">
+        <span class="badge" id="t_badge">Еда</span>
+        <div class="body"><div class="q" id="t_q">—</div><div class="hints" id="t_hints"></div></div>
+        <div class="hint">нажми, чтобы перевернуть ↻</div>
       </div>
-      <div class="hint">нажми, чтобы перевернуть ↻</div>
-    </div>
-    <div class="face back">
-      <span class="badge" id="badgeBack">Еда</span>
-      <div class="body"><div class="t" id="task">—</div></div>
-      <div class="levels" id="levels"></div>
-      <div class="kind">задание</div>
+      <div class="face back">
+        <span class="badge" id="t_badgeB">Еда</span>
+        <div class="body"><div class="t" id="t_task">—</div></div>
+        <div class="levels" id="t_levels"></div>
+        <div class="kind">задание</div>
+      </div>
     </div>
   </div>
-</div>
+  <nav>
+    <button class="nav-btn" id="t_prev" aria-label="Назад">◀</button>
+    <div class="counter">Карта <b id="t_cur">1</b> из <span id="t_total">15</span></div>
+    <button class="nav-btn" id="t_next" aria-label="Вперёд">▶</button>
+  </nav>
+</section>
 
-<nav>
-  <button class="nav-btn" id="prev" aria-label="Назад">◀</button>
-  <div class="counter" aria-live="polite">Карта <b id="cur">1</b> из <span id="total">15</span></div>
-  <button class="nav-btn" id="next" aria-label="Вперёд">▶</button>
-</nav>
+<!-- ════════ ПАРЫ ════════ -->
+<section class="screen hidden" id="screen-match">
+  <div class="controls" id="matchFilters">
+    <button class="chip on" data-theme="all">Все</button>
+    <button class="chip" data-theme="food">Еда</button>
+    <button class="chip" data-theme="day">День</button>
+    <button class="chip" data-theme="plans">Планы</button>
+    <button class="chip alt" id="matchHard" data-hard="0">Сложнее: 8 пар</button>
+  </div>
+  <div class="matchbar">
+    <span>⏱ <b id="m_time">0:00</b></span>
+    <span>Ошибки: <b id="m_err">0</b></span>
+    <span>Рекорд: <b id="m_best">—</b></span>
+  </div>
+  <div class="board" id="m_board"></div>
+  <div class="win hidden" id="m_win"></div>
+  <nav style="justify-content:center"><button class="chip alt" id="m_again">↺ Заново</button></nav>
+</section>
+
+<!-- ════════ КАРТОЧКИ ════════ -->
+<section class="screen hidden" id="screen-cards">
+  <div class="controls" id="cardFilters">
+    <button class="chip on" data-theme="all">Все</button>
+    <button class="chip" data-theme="food">Еда</button>
+    <button class="chip" data-theme="day">День</button>
+    <button class="chip" data-theme="plans">Планы</button>
+    <button class="chip alt on" id="c_dir" data-dir="ru2en">RU → EN</button>
+  </div>
+  <div class="stage">
+    <div class="flip" id="wcard" role="button" tabindex="0" aria-label="Слово, нажми чтобы перевернуть">
+      <div class="face front">
+        <span class="badge" id="w_badge">Еда</span>
+        <div class="body"><div class="word" id="w_front">—</div><div class="hint">нажми — перевод ↻</div></div>
+      </div>
+      <div class="face back">
+        <span class="badge" id="w_badgeB">Еда</span>
+        <div class="body">
+          <div class="word" id="w_back">—</div>
+          <div class="word-sub" id="w_src">—</div>
+          <button class="speak" id="w_speak">🔊 Послушать</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="grade"><button class="again" id="c_again">↻ Повторить</button><button class="know" id="c_know">✓ Знаю</button></div>
+  <div class="progress">Осталось: <b id="c_left">0</b> · Выучено: <b id="c_done">0</b></div>
+</section>
 
 <script>
 /* ════════════════════════════════════════════════════════════════
-   ИСТОЧНИК ДАННЫХ — единственное место правды для колоды.
-   Чтобы добавить карту: скопируй строку и впиши свою.
-     theme — "food" | "day" | "plans"
-     en    — лицо карты (вопрос на английском)
-     ru    — оборот (задание по-русски)
-     hints — 3–4 опоры (sentence starters), помогают слабым/детям говорить
+   ИСТОЧНИКИ ДАННЫХ — единственное место правды.
+   CARDS — разговорные карты (theme/en/ru/hints).
+   WORDS — словарь для «Пар» и «Карточек» (theme/en/ru).
+   Дополнять — просто дописать строку.
    ════════════════════════════════════════════════════════════════ */
 const CARDS = [
-  // ── Еда ──
-  { theme:"food", en:"Describe your favorite meal", ru:"Расскажи о любимом блюде: что это, как пахнет, кто его готовит. Задай соседу: «What's YOUR favorite meal?»",
-    hints:["My favorite meal is…", "It tastes…", "It's made of…", "I like it because…"] },
-  { theme:"food", en:"Name 5 things in the fridge", ru:"Назови 5 продуктов в холодильнике на английском. Кто запнулся — придумывает рецепт из них.",
-    hints:["There is…", "There are…", "I can see…", "We have…"] },
-  { theme:"food", en:"Order breakfast in a cafe", ru:"Разыграй сценку: один — официант, другой — гость. Закажи завтрак и напиток.",
-    hints:["Can I have…?", "I'd like…", "How much is…?", "Thank you!"] },
-  { theme:"food", en:"Sweet or salty? Why?", ru:"Сладкое или солёное? Объясни выбор минимум двумя предложениями. Спроси у всех за столом.",
-    hints:["I prefer…", "because…", "For example…", "I don't like… because…"] },
-  { theme:"food", en:"Teach a recipe in 4 steps", ru:"Объясни простой рецепт в 4 шага: First… Then… After that… Finally…",
-    hints:["First…", "Then…", "After that…", "Finally…"] },
-
-  // ── День ──
-  { theme:"day", en:"Your morning routine", ru:"Опиши утро по шагам: I wake up… I… Используй минимум 5 глаголов действия.",
-    hints:["I wake up…", "Then I…", "After that I…", "I usually…"] },
-  { theme:"day", en:"Best moment of today", ru:"Лучший момент сегодняшнего дня — и почему. Сосед задаёт один уточняющий вопрос.",
-    hints:["The best moment was…", "It happened when…", "I felt…", "because…"] },
-  { theme:"day", en:"Describe the weather", ru:"Опиши погоду за окном без слов «good» и «bad». Найди 3 других прилагательных.",
-    hints:["It's…", "The sky is…", "sunny · cloudy · windy", "warm · chilly · rainy"] },
-  { theme:"day", en:"Where did you go today?", ru:"Куда ты сегодня ходил/ездил? Расскажи маршрут: I went to… then…",
-    hints:["I went to…", "Then I…", "I saw…", "After that…"] },
-  { theme:"day", en:"How do you feel? (no 'good')", ru:"Как ты себя чувствуешь — без слова «good». Объясни почему одним предложением.",
-    hints:["I feel…", "because…", "happy · tired · excited", "calm · hungry · sleepy"] },
-
-  // ── Планы ──
-  { theme:"plans", en:"Plans for the weekend", ru:"Планы на выходные: 3 вещи через «I'm going to…» или «I will…»",
-    hints:["I'm going to…", "I will…", "On Saturday I…", "I want to…"] },
-  { theme:"plans", en:"Dream trip — where & why", ru:"Куда бы поехал в путешествие мечты и почему. Сосед спрашивает: «What will you do there?»",
-    hints:["I'd love to go to…", "because…", "There I can…", "I will…"] },
-  { theme:"plans", en:"One goal for this month", ru:"Одна цель на месяц на английском. Объясни первый шаг к ней.",
-    hints:["My goal is to…", "I want to…", "First, I will…", "because…"] },
-  { theme:"plans", en:"Plan a surprise for someone", ru:"Придумай сюрприз для кого-то за столом. Опиши план, но не выдай кому именно.",
-    hints:["I'm going to…", "First…", "Then…", "It's a secret!"] },
-  { theme:"plans", en:"Tomorrow in 3 sentences", ru:"Опиши завтрашний день в 3 предложениях, используя будущее время.",
-    hints:["Tomorrow I will…", "I'm going to…", "After that…", "In the evening…"] },
+  { theme:"food", en:"Describe your favorite meal", ru:"Расскажи о любимом блюде: что это, как пахнет, кто его готовит. Задай соседу: «What's YOUR favorite meal?»", hints:["My favorite meal is…","It tastes…","It's made of…","I like it because…"] },
+  { theme:"food", en:"Name 5 things in the fridge", ru:"Назови 5 продуктов в холодильнике на английском. Кто запнулся — придумывает рецепт из них.", hints:["There is…","There are…","I can see…","We have…"] },
+  { theme:"food", en:"Order breakfast in a cafe", ru:"Разыграй сценку: один — официант, другой — гость. Закажи завтрак и напиток.", hints:["Can I have…?","I'd like…","How much is…?","Thank you!"] },
+  { theme:"food", en:"Sweet or salty? Why?", ru:"Сладкое или солёное? Объясни выбор минимум двумя предложениями. Спроси у всех за столом.", hints:["I prefer…","because…","For example…","I don't like… because…"] },
+  { theme:"food", en:"Teach a recipe in 4 steps", ru:"Объясни простой рецепт в 4 шага: First… Then… After that… Finally…", hints:["First…","Then…","After that…","Finally…"] },
+  { theme:"day", en:"Your morning routine", ru:"Опиши утро по шагам: I wake up… I… Используй минимум 5 глаголов действия.", hints:["I wake up…","Then I…","After that I…","I usually…"] },
+  { theme:"day", en:"Best moment of today", ru:"Лучший момент сегодняшнего дня — и почему. Сосед задаёт один уточняющий вопрос.", hints:["The best moment was…","It happened when…","I felt…","because…"] },
+  { theme:"day", en:"Describe the weather", ru:"Опиши погоду за окном без слов «good» и «bad». Найди 3 других прилагательных.", hints:["It's…","The sky is…","sunny · cloudy · windy","warm · chilly · rainy"] },
+  { theme:"day", en:"Where did you go today?", ru:"Куда ты сегодня ходил/ездил? Расскажи маршрут: I went to… then…", hints:["I went to…","Then I…","I saw…","After that…"] },
+  { theme:"day", en:"How do you feel? (no 'good')", ru:"Как ты себя чувствуешь — без слова «good». Объясни почему одним предложением.", hints:["I feel…","because…","happy · tired · excited","calm · hungry · sleepy"] },
+  { theme:"plans", en:"Plans for the weekend", ru:"Планы на выходные: 3 вещи через «I'm going to…» или «I will…»", hints:["I'm going to…","I will…","On Saturday I…","I want to…"] },
+  { theme:"plans", en:"Dream trip — where & why", ru:"Куда бы поехал в путешествие мечты и почему. Сосед спрашивает: «What will you do there?»", hints:["I'd love to go to…","because…","There I can…","I will…"] },
+  { theme:"plans", en:"One goal for this month", ru:"Одна цель на месяц на английском. Объясни первый шаг к ней.", hints:["My goal is to…","I want to…","First, I will…","because…"] },
+  { theme:"plans", en:"Plan a surprise for someone", ru:"Придумай сюрприз для кого-то за столом. Опиши план, но не выдай кому именно.", hints:["I'm going to…","First…","Then…","It's a secret!"] },
+  { theme:"plans", en:"Tomorrow in 3 sentences", ru:"Опиши завтрашний день в 3 предложениях, используя будущее время.", hints:["Tomorrow I will…","I'm going to…","After that…","In the evening…"] },
 ];
 
-const THEME_LABEL = { food:"Еда", day:"День", plans:"Планы" };
+const WORDS = [
+  // Еда
+  {theme:"food", en:"breakfast", ru:"завтрак"},
+  {theme:"food", en:"dinner", ru:"ужин"},
+  {theme:"food", en:"fridge", ru:"холодильник"},
+  {theme:"food", en:"recipe", ru:"рецепт"},
+  {theme:"food", en:"sweet", ru:"сладкий"},
+  {theme:"food", en:"salty", ru:"солёный"},
+  {theme:"food", en:"spoon", ru:"ложка"},
+  {theme:"food", en:"hungry", ru:"голодный"},
+  {theme:"food", en:"tasty", ru:"вкусный"},
+  {theme:"food", en:"to cook", ru:"готовить"},
+  // День
+  {theme:"day", en:"morning", ru:"утро"},
+  {theme:"day", en:"evening", ru:"вечер"},
+  {theme:"day", en:"weather", ru:"погода"},
+  {theme:"day", en:"sunny", ru:"солнечный"},
+  {theme:"day", en:"cloudy", ru:"пасмурный"},
+  {theme:"day", en:"tired", ru:"усталый"},
+  {theme:"day", en:"busy", ru:"занятой"},
+  {theme:"day", en:"mood", ru:"настроение"},
+  {theme:"day", en:"to wake up", ru:"просыпаться"},
+  {theme:"day", en:"route", ru:"маршрут"},
+  // Планы
+  {theme:"plans", en:"weekend", ru:"выходные"},
+  {theme:"plans", en:"trip", ru:"поездка"},
+  {theme:"plans", en:"goal", ru:"цель"},
+  {theme:"plans", en:"surprise", ru:"сюрприз"},
+  {theme:"plans", en:"tomorrow", ru:"завтра"},
+  {theme:"plans", en:"dream", ru:"мечта"},
+  {theme:"plans", en:"soon", ru:"скоро"},
+  {theme:"plans", en:"ready", ru:"готовый"},
+  {theme:"plans", en:"to plan", ru:"планировать"},
+  {theme:"plans", en:"journey", ru:"путешествие"},
+];
+
+const THEME_LABEL = {food:"Еда", day:"День", plans:"Планы"};
 const LEVELS = "Малыши — 1 слово или жест · постарше — 2–3 предложения";
-
-/* ── состояние ── */
-let filter = "all";
-let order  = [];   // индексы CARDS в текущей колоде
-let pos    = 0;
-
 const $ = id => document.getElementById(id);
-const card = $("card");
+const shuffleArr = a => { for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]];} return a; };
+function speak(text){ try{ const u=new SpeechSynthesisUtterance(text.replace(/^to /,'')); u.lang="en-US"; speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} }
 
-function buildOrder(){
-  order = CARDS.map((_,i)=>i).filter(i => filter==="all" || CARDS[i].theme===filter);
-  pos = 0;
+/* ───────── ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМОВ ───────── */
+$("tabs").addEventListener("click", e=>{
+  const b = e.target.closest(".tab"); if(!b) return;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on", t===b));
+  const scr = b.dataset.screen;
+  ["talk","match","cards"].forEach(s=> $("screen-"+s).classList.toggle("hidden", s!==scr));
+  stopTimer();
+  if(scr==="match") newBoard();
+  if(scr==="cards") newRound();
+});
+
+function attachFilters(wrapId, onPick){
+  $(wrapId).addEventListener("click", e=>{
+    const b = e.target.closest(".chip[data-theme]"); if(!b) return;
+    $(wrapId).querySelectorAll(".chip[data-theme]").forEach(c=>c.classList.toggle("on", c===b));
+    onPick(b.dataset.theme);
+  });
 }
+const byTheme = (arr,th) => arr.filter(x=> th==="all" || x.theme===th);
 
-function shuffle(){
-  for(let i=order.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [order[i],order[j]] = [order[j],order[i]];
+/* ───────── РАЗГОВОР ───────── */
+let tFilter="all", tOrder=[], tPos=0;
+const tCard=$("talkCard");
+function tBuild(){ tOrder=CARDS.map((_,i)=>i).filter(i=> tFilter==="all"||CARDS[i].theme===tFilter); tPos=0; }
+function tRender(){
+  $("t_total").textContent=tOrder.length;
+  tCard.classList.remove("flipped");
+  const c=CARDS[tOrder[tPos]];
+  tCard.dataset.theme=c.theme;
+  $("t_q").textContent=c.en; $("t_task").textContent=c.ru;
+  const h=$("t_hints"); h.innerHTML=""; const lbl=document.createElement("span"); lbl.className="lbl"; lbl.textContent="опоры"; h.appendChild(lbl);
+  (c.hints||[]).forEach(x=>{const s=document.createElement("span"); s.textContent=x; h.appendChild(s);});
+  $("t_levels").textContent=LEVELS;
+  $("t_badge").textContent=$("t_badgeB").textContent=THEME_LABEL[c.theme];
+  $("t_cur").textContent=tPos+1; $("t_prev").disabled=tPos===0; $("t_next").disabled=tPos===tOrder.length-1;
+}
+tCard.addEventListener("click", ()=>tCard.classList.toggle("flipped"));
+$("t_prev").addEventListener("click", e=>{e.stopPropagation(); if(tPos>0){tPos--; tRender();}});
+$("t_next").addEventListener("click", e=>{e.stopPropagation(); if(tPos<tOrder.length-1){tPos++; tRender();}});
+$("talkShuffle").addEventListener("click", ()=>{ shuffleArr(tOrder); tPos=0; tRender(); });
+attachFilters("talkFilters", th=>{ tFilter=th; tBuild(); tRender(); });
+
+/* ───────── ПАРЫ ───────── */
+let mFilter="all", mHard=false, mSel=null, mMatched=0, mErr=0, mTotal=0, mLock=false;
+let timer=null, t0=0;
+function fmt(ms){ const s=Math.floor(ms/1000); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+function stopTimer(){ if(timer){clearInterval(timer); timer=null;} }
+function startTimer(){ t0=Date.now(); timer=setInterval(()=>{ $("m_time").textContent=fmt(Date.now()-t0); },250); }
+function bestKey(){ return "fe_best_"+(mHard?8:6); }
+function getBest(){ try{return localStorage.getItem(bestKey());}catch(e){return null;} }
+function showBest(){ const b=getBest(); $("m_best").textContent= b? fmt(+b):"—"; }
+function newBoard(){
+  stopTimer(); mSel=null; mMatched=0; mErr=0; mLock=false;
+  $("m_err").textContent="0"; $("m_time").textContent="0:00"; $("m_win").classList.add("hidden"); showBest();
+  const n=mHard?8:6;
+  const pool=shuffleArr(byTheme(WORDS,mFilter).slice()).slice(0,n);
+  mTotal=pool.length;
+  const tiles=[]; pool.forEach((w,i)=>{ tiles.push({pair:i,lang:"ru",text:w.ru}); tiles.push({pair:i,lang:"en",text:w.en}); });
+  shuffleArr(tiles);
+  const board=$("m_board"); board.innerHTML="";
+  tiles.forEach(t=>{
+    const el=document.createElement("button");
+    el.className="tile "+t.lang; el.textContent=t.text; el.dataset.pair=t.pair;
+    el.addEventListener("click", ()=>onTile(el,t));
+    board.appendChild(el);
+  });
+}
+function onTile(el,t){
+  if(mLock || el.classList.contains("ok") || el===mSel) return;
+  if(!timer) startTimer();
+  if(t.lang==="en") speak(t.text);
+  if(!mSel){ mSel=el; el.classList.add("sel"); return; }
+  if(mSel.dataset.pair===el.dataset.pair){
+    mSel.classList.remove("sel"); mSel.classList.add("ok"); el.classList.add("ok");
+    mSel=null; mMatched++;
+    if(mMatched===mTotal) win();
+  } else {
+    mErr++; $("m_err").textContent=mErr; mLock=true;
+    const a=mSel; mSel=null; el.classList.add("bad","sel"); a.classList.add("bad");
+    setTimeout(()=>{ a.classList.remove("bad","sel"); el.classList.remove("bad","sel"); mLock=false; },360);
   }
-  pos = 0; render();
 }
-
-function renderHints(list){
-  const box = $("hints");
-  box.innerHTML = "";
-  const lbl = document.createElement("span");
-  lbl.className = "lbl"; lbl.textContent = "опоры";
-  box.appendChild(lbl);
-  list.forEach(h=>{ const s=document.createElement("span"); s.textContent=h; box.appendChild(s); });
+function win(){
+  stopTimer(); const ms=Date.now()-t0; const prev=getBest(); let rec="";
+  if(!prev || ms<+prev){ try{localStorage.setItem(bestKey(),ms);}catch(e){} rec=" 🏆 новый рекорд!"; }
+  showBest();
+  const w=$("m_win"); w.classList.remove("hidden");
+  w.innerHTML="Готово за "+fmt(ms)+"!"+rec+"<small>Ошибок: "+mErr+" · быстрейший за столом получает жетон</small>";
 }
+$("m_again").addEventListener("click", newBoard);
+$("matchHard").addEventListener("click", e=>{ mHard=!mHard; e.target.classList.toggle("on",mHard); e.target.textContent=mHard?"Проще: 6 пар":"Сложнее: 8 пар"; newBoard(); });
+attachFilters("matchFilters", th=>{ mFilter=th; newBoard(); });
 
-function render(){
-  const total = order.length;
-  $("total").textContent = total;
-  if(total===0){
-    card.style.display="none";
-    $("cur").textContent="0";
-    $("prev").disabled = $("next").disabled = true;
+/* ───────── КАРТОЧКИ ───────── */
+let cFilter="all", cDir="ru2en", cQueue=[], cDone=0, cCur=null;
+const wCard=$("wcard");
+function newRound(){
+  cQueue=shuffleArr(byTheme(WORDS,cFilter).slice()); cDone=0; showWord();
+}
+function showWord(){
+  wCard.classList.remove("flipped");
+  $("c_left").textContent=cQueue.length; $("c_done").textContent=cDone;
+  if(cQueue.length===0){
+    cCur=null; wCard.dataset.theme=""; $("w_badge").textContent=$("w_badgeB").textContent="🎉";
+    $("w_front").textContent="Готово!"; $("w_back").textContent="Выучено "+cDone; $("w_src").textContent="нажми «Заново» в фильтрах темы";
     return;
   }
-  card.style.display="";
-  card.classList.remove("flipped");           // всегда показываем вопрос первым
-  const c = CARDS[order[pos]];
-  card.dataset.theme = c.theme;
-  $("question").textContent = c.en;
-  $("task").textContent     = c.ru;
-  renderHints(c.hints || []);
-  $("levels").textContent = LEVELS;
-  $("badge").textContent = $("badgeBack").textContent = THEME_LABEL[c.theme];
-  $("cur").textContent = pos+1;
-  $("prev").disabled = pos===0;
-  $("next").disabled = pos===total-1;
+  cCur=cQueue[0]; wCard.dataset.theme=cCur.theme;
+  $("w_badge").textContent=$("w_badgeB").textContent=THEME_LABEL[cCur.theme];
+  const src = cDir==="ru2en"? cCur.ru : cCur.en;
+  const tgt = cDir==="ru2en"? cCur.en : cCur.ru;
+  $("w_front").textContent=src; $("w_back").textContent=tgt; $("w_src").textContent=src;
 }
+wCard.addEventListener("click", e=>{ if(e.target.id==="w_speak") return; wCard.classList.toggle("flipped"); });
+$("w_speak").addEventListener("click", e=>{ e.stopPropagation(); if(cCur) speak(cCur.en); });
+$("c_know").addEventListener("click", ()=>{ if(!cCur)return; cQueue.shift(); cDone++; showWord(); });
+$("c_again").addEventListener("click", ()=>{ if(!cCur)return; cQueue.push(cQueue.shift()); showWord(); });
+$("c_dir").addEventListener("click", e=>{ cDir = cDir==="ru2en"?"en2ru":"ru2en"; e.target.textContent= cDir==="ru2en"?"RU → EN":"EN → RU"; newRound(); });
+attachFilters("cardFilters", th=>{ cFilter=th; newRound(); });
 
-function go(delta){
-  const n = pos+delta;
-  if(n<0 || n>=order.length) return;
-  pos = n; render();
-}
-
-/* ── события ── */
-card.addEventListener("click", ()=> card.classList.toggle("flipped"));
-$("prev").addEventListener("click", e=>{e.stopPropagation(); go(-1);});
-$("next").addEventListener("click", e=>{e.stopPropagation(); go(1);});
-$("shuffleBtn").addEventListener("click", shuffle);
-
-$("filters").addEventListener("click", e=>{
-  const btn = e.target.closest(".chip[data-theme]");
-  if(!btn) return;
-  filter = btn.dataset.theme;
-  document.querySelectorAll(".chip[data-theme]").forEach(c=>c.classList.toggle("on", c===btn));
-  buildOrder(); render();
-});
-
+/* keyboard для разговора */
 document.addEventListener("keydown", e=>{
-  if(e.key==="ArrowLeft")  go(-1);
-  if(e.key==="ArrowRight") go(1);
-  if(e.key===" "||e.key==="Enter"){ e.preventDefault(); card.classList.toggle("flipped"); }
+  if(!$("screen-talk").classList.contains("hidden")){
+    if(e.key==="ArrowLeft" && tPos>0){tPos--;tRender();}
+    if(e.key==="ArrowRight" && tPos<tOrder.length-1){tPos++;tRender();}
+    if(e.key===" "||e.key==="Enter"){e.preventDefault(); tCard.classList.toggle("flipped");}
+  }
 });
 
-buildOrder(); render();
+/* старт */
+tBuild(); tRender();
 </script>
 </body>
 </html>
