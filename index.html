@@ -121,6 +121,23 @@
   @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
   .win{width:100%; max-width:420px; margin-top:16px; text-align:center; font-size:16px; font-weight:700; color:var(--ok)}
   .win small{display:block; font-weight:500; color:var(--muted); margin-top:4px}
+
+  /* словарные карточки чуть ниже — чтобы грейд-кнопки влезали без скролла */
+  #screen-cards .flip{min-height:clamp(300px,44vh,380px)}
+
+  /* загляни-список слов темы на экране разговора */
+  .peek{width:100%; max-width:420px; margin:16px 0 0; background:#fff; border:1.5px solid var(--line); border-radius:14px; overflow:hidden}
+  .peek summary{list-style:none; cursor:pointer; padding:12px 16px; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:space-between; user-select:none}
+  .peek summary::-webkit-details-marker{display:none}
+  .peek summary::after{content:"▾"; color:var(--muted); transition:.2s}
+  .peek[open] summary::after{transform:rotate(180deg)}
+  .peeklist{padding:4px 10px 12px}
+  .prow{display:flex; align-items:center; gap:10px; padding:8px; border-top:1px solid var(--line)}
+  .prow:first-child{border-top:none}
+  .prow .ru{flex:1; font-weight:600; font-size:14px}
+  .prow .en{flex:1; font-style:italic; color:#3a352f; font-size:14px}
+  .prow .say{border:1.5px solid var(--line); background:#fff; border-radius:8px; padding:4px 10px; cursor:pointer; font-size:14px; flex:none; touch-action:manipulation}
+  .prow .say:active{transform:scale(.92)}
 </style>
 </head>
 <body>
@@ -176,6 +193,10 @@
     <div class="counter">Карта <b id="t_cur">1</b> из <span id="t_total">15</span></div>
     <button class="nav-btn" id="t_next" aria-label="Вперёд">▶</button>
   </nav>
+  <details class="peek" id="t_peek">
+    <summary>📖 Слова темы <span id="t_peekTheme">«Еда»</span></summary>
+    <div class="peeklist" id="t_peekList"></div>
+  </details>
 </section>
 
 <!-- ════════ ПАРЫ ════════ -->
@@ -328,6 +349,19 @@ function tRender(){
   $("t_levels").textContent=LEVELS;
   $("t_badge").textContent=$("t_badgeB").textContent=THEME_LABEL[c.theme];
   $("t_cur").textContent=tPos+1; $("t_prev").disabled=tPos===0; $("t_next").disabled=tPos===tOrder.length-1;
+  tPeek(c.theme);
+}
+function tPeek(theme){
+  $("t_peekTheme").textContent="«"+THEME_LABEL[theme]+"»";
+  const pl=$("t_peekList"); pl.innerHTML="";
+  byTheme(WORDS,theme).forEach(w=>{
+    const row=document.createElement("div"); row.className="prow";
+    const ru=document.createElement("span"); ru.className="ru"; ru.textContent=w.ru;
+    const en=document.createElement("span"); en.className="en"; en.textContent=w.en;
+    const say=document.createElement("button"); say.className="say"; say.textContent="🔊"; say.title="послушать";
+    say.addEventListener("click", ()=>speak(w.en));
+    row.append(ru,en,say); pl.appendChild(row);
+  });
 }
 tCard.addEventListener("click", ()=>tCard.classList.toggle("flipped"));
 $("t_prev").addEventListener("click", e=>{e.stopPropagation(); if(tPos>0){tPos--; tRender();}});
